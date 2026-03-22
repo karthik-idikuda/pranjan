@@ -1,0 +1,174 @@
+# PRAJNA Configuration — v1.1
+# Predictive Reasoning Architecture for Joint Network-wide Anomalics
+
+project:
+  name: "PRAJNA"
+  version: "1.1.0"
+  author: "Karthik"
+
+# ─── Data Sources ───
+data:
+  base_dir: "data"
+  datasets:
+    nasa_smap:
+      name: "NASA SMAP"
+      kaggle_id: "patrickfleith/nasa-anomaly-detection-dataset-smap-msl"
+      subset: "smap"
+      channels: 55
+    nasa_msl:
+      name: "NASA MSL (Curiosity)"
+      kaggle_id: "patrickfleith/nasa-anomaly-detection-dataset-smap-msl"
+      subset: "msl"
+      channels: 26
+    nasa_cmapss:
+      name: "NASA C-MAPSS Turbofan"
+      kaggle_id: "behrad3d/nasa-cmaps"
+      sensors: 21
+    esa_opssat:
+      name: "ESA OPS-SAT"
+      kaggle_id: "patrickfleith/opssat-ad"
+      channels: 16
+
+  preprocessing:
+    resample_rate_hz: 1.0
+    normalization: "z-score"
+    imputation: "forward-fill"
+    window_size: 60
+    fft_bands: 3
+
+# ─── Graph Schema ───
+graph:
+  num_nodes: 13
+  subsystems:
+    - {id: 0, name: "EPS", full: "Electrical Power System"}
+    - {id: 1, name: "TCS", full: "Thermal Control System"}
+    - {id: 2, name: "PROP", full: "Propulsion"}
+    - {id: 3, name: "AOCS", full: "Attitude & Orbit Control"}
+    - {id: 4, name: "COMM", full: "Communication"}
+    - {id: 5, name: "OBC", full: "On-Board Computer"}
+    - {id: 6, name: "PL", full: "Payload"}
+    - {id: 7, name: "STRUCT", full: "Structure & Mechanisms"}
+    - {id: 8, name: "HARNESS", full: "Wiring Harness"}
+    - {id: 9, name: "PYRO", full: "Pyrotechnics"}
+    - {id: 10, name: "REA", full: "Reaction/Entry Assembly"}
+    - {id: 11, name: "BATT", full: "Battery Pack"}
+    - {id: 12, name: "SA", full: "Solar Array"}
+
+# ─── SDWAP Algorithm ───
+sdwap:
+  max_iterations: 5
+  damping_gamma: 0.85
+  temporal_decay_lambda: 0.1
+  convergence_threshold: 0.001
+  confidence_floor: 0.1
+
+# ─── Temporal GNN ───
+tgn:
+  hidden_dim: 64
+  num_heads: 4
+  num_layers: 2
+  memory_dim: 64
+  dropout: 0.1
+  time2vec_dim: 16
+
+# ─── Training ───
+training:
+  epochs: 100
+  batch_size: 64
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  focal_loss_gamma: 2.0
+  early_stopping_patience: 10
+  train_ratio: 0.7
+  val_ratio: 0.15
+  test_ratio: 0.15
+  seed: 42
+
+# ─── AEGIS Adversarial Guard ───
+aegis:
+  spectral:
+    window_size: 128
+    energy_threshold: 3.0
+  autoencoder:
+    latent_dim: 16
+    reconstruction_threshold: 2.5
+  temporal:
+    gru_hidden: 32
+    consistency_threshold: 2.0
+  ensemble:
+    vote_threshold: 2  # 2 of 3 must flag
+
+# ─── SHAKTI Conformal Prediction ───
+shakti:
+  coverage_level: 0.99
+  calibration_size: 500
+  adaptive:
+    gamma: 0.005
+    window_size: 1000
+
+# ─── KAVACH Formal Verification ───
+kavach:
+  safety_properties:
+    max_anomaly_score: 1.0
+    min_rul_flights: 0
+    max_damage_score: 1.0
+  override_policy: "conservative"  # conservative | permissive
+
+# ─── NETRA Edge Model ───
+netra:
+  micro_tgn:
+    hidden_dim: 16
+    num_layers: 1
+  distillation:
+    temperature: 4.0
+    alpha_kd: 0.7
+  quantization: "int8"
+  max_model_size_kb: 50
+
+# ─── PhyRAG ───
+phyrag:
+  knowledge_base_dir: "data/knowledge_base"
+  embedding_model: "all-MiniLM-L6-v2"
+  chunk_size: 512
+  top_k: 5
+
+# ─── LLM (NVIDIA API) ───
+llm:
+  provider: "nvidia"
+  base_url: "https://integrate.api.nvidia.com/v1/chat/completions"
+  model: "moonshotai/kimi-k2.5"
+  max_tokens: 4096
+  temperature: 0.3
+
+# ─── Prediction ───
+prediction:
+  failure_horizon_minutes: 30
+  alert_thresholds:
+    watch: 0.4
+    warning: 0.6
+    critical: 0.8
+
+# ─── VAYUH Federation ───
+vayuh:
+  num_clients: 3
+  dp_epsilon: 1.0
+  dp_delta: 0.00001
+  clip_norm: 1.0
+  rounds: 10
+
+# ─── Dashboard ───
+dashboard:
+  host: "0.0.0.0"
+  port: 5000
+  refresh_interval_ms: 2000
+
+# ─── Evaluation ───
+evaluation:
+  metrics:
+    - "roc_auc"
+    - "pr_auc"
+    - "f1"
+    - "lead_time"
+    - "far"
+  num_ablations: 10
+  num_stress_tests: 7

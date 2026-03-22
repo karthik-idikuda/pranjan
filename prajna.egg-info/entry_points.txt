@@ -1,0 +1,2 @@
+[console_scripts]
+prajna = prajna.cli:main
